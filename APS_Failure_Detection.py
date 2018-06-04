@@ -93,7 +93,7 @@ def meanHistograms(trainData):
 
 
 #This Method reduces features based the Correlation between the features.
-def CorrelationFeatureSelection(X,Y):
+def CorrelationFeatureSelection(X,Y,flag):
     #####Feature Selection with Co-relation####
     # Create correlation matrix
     corr_matrix = X.corr().abs()
@@ -107,13 +107,17 @@ def CorrelationFeatureSelection(X,Y):
     print(to_drop)
 
     # Creating the DataFrame with Selected Features.
-    Readydf = ImputedDataFrame[ImputedDataFrame.columns.difference(to_drop)]
+    if flag == "Train":
+        Readydf = ImputedDataFrame[ImputedDataFrame.columns.difference(to_drop)]
+    elif flag == "Test":
+        Readydf = ImputedTestDataFrame[ImputedTestDataFrame.columns.difference(to_drop)]
+
     return Readydf
 
 
 #This Method reduces features selecting the K best features using Chi Square.
 #X = feature set, Y = class lable values, FtreNo = No of features to be selected.
-def SelectKbest(X,Y,FtreNo):
+def SelectKbest(X,Y,FtreNo,flag):
 
     #####Feature Extraction with Univariate Statistical Tests####
 
@@ -133,13 +137,29 @@ def SelectKbest(X,Y,FtreNo):
     print(Selected_feature_names)
 
     #Creating the DataFrame with Selected Features.
-    Readydf = pd.DataFrame(ImputedDataFrame, columns=Selected_feature_names)
+    if flag == "Train":
+        Readydf = pd.DataFrame(ImputedDataFrame, columns=Selected_feature_names)
+    elif flag == "Test":
+        Readydf = pd.DataFrame(ImputedTestDataFrame, columns=Selected_feature_names)
+
     return Readydf
 
 
 
+######Feature elimination by low varience####
+def lowVarfilterfeatures(DataFrame):
+     print("The Std Dev are: ")
+     pd.options.display.float_format = '{:.5f}'.format
+     #print(preprocessedData)
+     print(DataFrame.std())
+     #print(DataFrame.std() > 2.90)
+     #print(DataFrame.drop(DataFrame.var()[DataFrame.var() > 2.90].index.values, axis=1))
 
-def filterfeatures(ImputedDataFrame, FtreSelMthd, FtreNo):
+
+
+
+
+def filterfeatures(DataFrame, FtreSelMthd, FtreNo, flag):
 
     #array = ImputedDataFrame.values
     #Ftr = array[:, 0:107]
@@ -147,27 +167,25 @@ def filterfeatures(ImputedDataFrame, FtreSelMthd, FtreNo):
 
 
     # Seperating the features from the class lable
-    X = ImputedDataFrame[ImputedDataFrame.columns.difference(['class'])]
-    Y = pd.DataFrame(ImputedDataFrame, columns=['class'])
+    X = DataFrame[DataFrame.columns.difference(['class'])]
+    Y = pd.DataFrame(DataFrame, columns=['class'])
 
     #Based on the feature selection technique the respective method will be called.
     if FtreSelMthd == "Corelation" :
-        FeatureSelected_Df = CorrelationFeatureSelection(X,Y)
+        FeatureSelected_Df = CorrelationFeatureSelection(X,Y,flag)
     elif FtreSelMthd == "SelectKBest":
-        FeatureSelected_Df =SelectKbest(X,Y,FtreNo)
+        FeatureSelected_Df =SelectKbest(X,Y,FtreNo,flag)
 
-    print("Final DataFrame is")
+    if flag == "Train":
+        print("Final TrainDataFrame is")
+    elif flag == "Test":
+        print("Final TestDataFrame is")
+
     print(FeatureSelected_Df)
 
+    #lowVarfilterfeatures(FeatureSelected_Df)
 
-    ######Feature elimination by low varience####
 
-    #print("The Std Dev are: ")
-    #pd.options.display.float_format = '{:.7f}'.format
-    #print(preprocessedData)
-    #print(preprocessedData.std())
-    #print(preprocessedData.std() > 2.90)
-    #print(preprocessedData.drop(preprocessedData.var()[preprocessedData.var() > 1.711293e+123].index.values, axis=1))
 
     #####Feature extraction using RFE[Recursive Feature Elimination]####
 
@@ -224,23 +242,34 @@ def makeDataFrame(trainData):
 ###############################################
 # Load Train Dataset
 trainData = loadDatasetWithPandas(TRAIN_PATH, SKIPROWS)
-print("Train Data be like: ")
-display(trainData)
+testData =  loadDatasetWithPandas(TEST_PATH, SKIPROWS)
+#print("Train Data be like: ")
+#display(trainData)
+
+#print("Test Data be like: ")
+#display(testData)
+
 
 #Seperate the class lable from the features fro the training data
 dataFrameWithoutlable = makeDataFrame(trainData)
 df = pd.DataFrame(trainData)
+dfTest = pd.DataFrame(testData)
 k = df.nunique()
-display('\n')
-display('The Number of unique values to each feature are: ')
-display(k)
+#display('\n')
+#display('The Number of unique values to each feature are: ')
+#display(k)
 
 #Treating the Histogram Data.
 preprocessedData= meanHistograms(trainData)
+preprocessedTestData = meanHistograms(testData)
 finalDf = pd.concat([preprocessedData,df[['class']]], axis = 1)
-print("Train Data after preprocessing be like: ")
-display(finalDf)
+finalTestDf = pd.concat([preprocessedTestData,dfTest[['class']]], axis = 1)
+#print("Train Data after preprocessing be like: ")
+#display(finalDf)
 
+
+#print("Test Data after preprocessing be like: ")
+#display(finalTestDf)
 
 
 ##Imputation of missing values using Mean Strategy
@@ -249,26 +278,28 @@ from sklearn.preprocessing import Imputer
 
 imp = Imputer(missing_values='NaN', strategy='mean', axis=0)
 imp.fit(preprocessedData)
+imp.fit(preprocessedTestData)
 ImputedDataFrame=pd.DataFrame(imp.transform(preprocessedData), columns = preprocessedData.columns)
 ImputedDataFrame = pd.concat([ImputedDataFrame,df[['class']]], axis = 1)
-print("The Imputed DataFrame")
-print(ImputedDataFrame)
 
 
+ImputedTestDataFrame=pd.DataFrame(imp.transform(preprocessedTestData), columns = preprocessedData.columns)
+ImputedTestDataFrame = pd.concat([ImputedTestDataFrame,dfTest[['class']]], axis = 1)
+
+#print("The Imputed DataFrame")
+#print(ImputedDataFrame)
+
+#print("The Imputed TestDataFrame")
+#print(ImputedTestDataFrame)
 
 # FtreSelMthd can be "Corelation" or "SelectKBest"
-FtreSelMthd = "SelectKBest";
+FtreSelMthd = "Corelation";
 # FtreNo is the number of K best features to be selected.
 FtreNo = 40;
 
+
 #Calling the feature selection method.
-filterfeatures(ImputedDataFrame, FtreSelMthd, FtreNo);
-
-
-
-
-
-
-
-
-
+#for the training set
+filterfeatures(ImputedDataFrame, FtreSelMthd, FtreNo, 'Train')
+#for the test set
+filterfeatures(ImputedDataFrame, FtreSelMthd, FtreNo,'Test')
