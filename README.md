@@ -1,9 +1,6 @@
 # ATIML
 Repository for semester project in advanced topics in machine learning (summer semester 2018)
 
-Google Doc File for first summary: https://docs.google.com/document/d/1NTaYv1SU_Pu4MUZGobMtUPspAhCCqrgHy5qTkJULpzg/edit?usp=sharing
-
-
 In total there are 4 deadlines, that you need to be aware of:
 1. 30th of April 2018 : Please send me an e-mail regarding your team. Changes to the
 team can only be done afterwards if absolutely necessary.
